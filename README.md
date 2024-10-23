@@ -59,8 +59,10 @@ Before running the script, you can adjust various parameters to suit your setup:
 - **N_CPU**: Number of CPU cores to utilize.
 - **GROUNDTRUTH_RTTM**: Path to the ground truth RTTM file (optional).
 - **START_STAGE & END_STAGE**: Define which stages to run.
+- **HF_TOKEN**: HuggingFace Token
 
-For model path you can use a pre-trained TS-VAD model from here: 
+Note: Request access for https://huggingface.co/pyannote/segmentation-3.0. Paste HuggingFace token in HF_TOKEN param
+For model path you can use a pre-trained TS-VAD model from here: https://drive.google.com/file/d/1YBW_XNck6hkJ8ouXKH2aR_9pHhZtWWwN/view?usp=sharing
 
 -----
 ## 4. Progression through the stages

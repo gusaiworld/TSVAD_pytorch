@@ -6,11 +6,11 @@
 DATA_PATH="/2023_ntu-recordings_16k"  # Path to the wav directory
 MAX_SPEAKER=8  # Maximum number of speakers
 SOURCE_MODEL="../pretrained_models/ecapa-tdnn.model"  # Path to the source model
-MODEL_PATH="pretrained_models/newlongsimdata_pretrain_sep_24/8_pretrained_long_16khz_v1/model_0015_newlongsimdata_pretrain.model"  # Path to the model for TS-VAD
+MODEL_PATH="pretrained_models/model_0015_newlongsimdata_pretrain.model"  # Path to the model for TS-VAD
 OUTPUT_PATH="exps/infer"  # Output path
 TEST_SHIFT=4  # Test shift value
 N_CPU=12  # Number of CPU cores
-
+HF_TOKEN= "your_hugging_face_token" # (Request access for https://huggingface.co/pyannote/segmentation-3.0)
 # Optional: Ground truth RTTM file (leave empty if not available)
 GROUNDTRUTH_RTTM="/2023_ntu-recordings_16k/all.rttm"
 
@@ -30,7 +30,7 @@ OUTPUT_PATH="${OUTPUT_PATH}_${TIME}"
 if [ $START_STAGE -le 1 ] && [ $END_STAGE -ge 1 ]; then
     echo "Running VBx prediction (Stage 1)..."
     cd VBx
-    python predict.py --in-wav-dir "$DATA_PATH"
+    python predict.py --in-wav-dir "$DATA_PATH" --hf-token "$HF_TOKEN"
     if [ $? -ne 0 ]; then
         echo "Error: VBx prediction failed."
         exit 1

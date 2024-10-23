@@ -319,6 +319,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpus', type=str, default='', help='use gpus (passed to CUDA_VISIBLE_DEVICES)')
     parser.add_argument('--in-wav-dir', type=str, default='', help='path to directory containing wav files')
+    parser.add_argument('--hf-token', type=str, required=True, help='Hugging Face token for authentication')
     args = parser.parse_args()
     
     wav_dir = args.in_wav_dir + "/wav"
@@ -336,7 +337,7 @@ if __name__ == '__main__':
     
     os.makedirs(exp_dir, exist_ok=True)
 
-    pyannote_segementation_token="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"
+    pyannote_segementation_token=args.hf_token
 
     for wav_file in os.listdir(wav_dir):
 
