@@ -143,7 +143,7 @@ def predict(args,wav_path,vad_path,config):
     model, label_name, input_name = '', None, None
 
     if config['backend'] == 'onnx':
-        onnxruntime.set_default_logger_severity(ort.LoggingLevel.ORT_LOGGING_LEVEL_ERROR)
+        onnxruntime.set_default_logger_severity(3)
         model = onnxruntime.InferenceSession(config['weights'], providers=['CUDAExecutionProvider'])
         input_name = model.get_inputs()[0].name
         label_name = model.get_outputs()[0].name
