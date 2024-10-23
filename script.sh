@@ -10,7 +10,7 @@ MODEL_PATH="pretrained_models/model_0015_newlongsimdata_pretrain.model"  # Path 
 OUTPUT_PATH="exps/infer"  # Output path
 TEST_SHIFT=4  # Test shift value (Use: 0.5 for slightly lower DER; slower)
 N_CPU=12  # Number of CPU cores
-HF_TOKEN= "your_hugging_face_token" # (Request access for https://huggingface.co/pyannote/segmentation-3.0)
+HF_TOKEN="your_hugging_face_token" # (Request access for https://huggingface.co/pyannote/segmentation-3.0)
 # Optional: Ground truth RTTM file (leave empty if not available)
 GROUNDTRUTH_RTTM="/2023_ntu-recordings_16k/all.rttm"
 
