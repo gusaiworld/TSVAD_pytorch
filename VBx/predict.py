@@ -143,10 +143,10 @@ def predict(args,wav_path,vad_path,config):
     model, label_name, input_name = '', None, None
 
     if config['backend'] == 'onnx':
+        onnxruntime.set_default_logger_severity(ort.LoggingLevel.ORT_LOGGING_LEVEL_ERROR)
         model = onnxruntime.InferenceSession(config['weights'], providers=['CUDAExecutionProvider'])
         input_name = model.get_inputs()[0].name
         label_name = model.get_outputs()[0].name
-
     else:
         raise ValueError('Wrong combination of --model/--weights/--model_file '
                          'parameters provided (or not provided at all)')
