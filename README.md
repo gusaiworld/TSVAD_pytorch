@@ -1,10 +1,11 @@
 # TS-VAD on AliMeeting
 
-This guide will walk you through setting up the TSVAD_pytorch environment and downloading necessary data.
+This guide will walk you through setting up VBx and TSVAD_pytorch environment to run end-to-end diarization pipeline. This guide focuses on evaluation (not training).
 
-## 1. Conda Environment Setup
+## 1. Conda Installation
 
 ```bash
+# Ignore if you already have conda setup
 cd /workspace
 rm -rf miniconda3/
 
@@ -20,16 +21,19 @@ INSTALL_DIR="/workspace/miniconda3"
 
 bash "$INSTALLER" -b -p "$INSTALL_DIR"
 export PATH="/workspace/miniconda3/bin:$PATH"
-conda env create --name wespeak2 --file=/workspace/wespeak2.yml
-source activate wespeak2
 ```
 
 ## 2. Pull from GitHub
 
 ```bash
 git clone https://github.com/adnan-azmat/TSVAD_pytorch.git
-cd TSVAD_pytorch/ts-vad
-git checkout u/adnan/alimeeting
+cd TSVAD_pytorch
+
+conda env create --name wespeak2 --file=/workspace/wespeak2.yml
+source activate wespeak2
+
+cd ts-vad
+git checkout u/adnan/e2epipeline
 mkdir pretrained_models
 cd pretrained_models
 
@@ -37,140 +41,107 @@ gdown 1-zlAj2SyVJVsbhifwpTlAfrgc9qu-HDb # [WavLM-Base+.pt](https://drive.google.
 gdown 1E-ju12Jy1fID2l4x-nj0zB5XUHSKWsRB # [ecapa-tdnn.model](https://drive.google.com/file/d/1E-ju12Jy1fID2l4x-nj0zB5XUHSKWsRB/view?usp=drive_link)
 ```
 
-## 3. Prepare Datasets
+## 3. Evaluation
 
-```bash
-cd ..
-mkdir data
-cd data
+Before running the evaluation script, ensure you have the following:
 
-# MUSAN and RIRS_NOISES (https://www.openslr.org/17/) and (https://www.openslr.org/28/)
-wget https://us.openslr.org/resources/17/musan.tar.gz
-wget https://us.openslr.org/resources/28/rirs_noises.zip
+1. **List of `.wav` Files**: A collection of audio recordings in `.wav` format that you wish to evaluate.
+2. **Ground Truth RTTM File (Optional)**: If available, provide an RTTM file containing ground truth speaker rttm. This file will be used for calculating DER
 
-tar xf musan.tar.gz
-sudo apt-get install unzip
-unzip rirs_noises.zip
+Execute the provided Bash script: `script.sh` to start the evaluation process
 
-rm musan.tar.gz
-rm rirs_noises.zip
+Before running the script, you can adjust various parameters to suit your setup:
 
-# AliMeeting Dataset (https://www.openslr.org/119/)
+- **DATA_PATH**: Path to the directory containing `wav` folder (path to `data` folder in above example)
+- **MAX_SPEAKER**: Maximum number of speakers to handle / maximum number of speakers the TS-VAD model can handle.
+- **MODEL_PATH**: Path to the pre-trained model for TS-VAD.
+- **TEST_SHIFT**: Test shift value for TS-VAD. Use 0.5 for better DER (slower).
+- **N_CPU**: Number of CPU cores to utilize.
+- **GROUNDTRUTH_RTTM**: Path to the ground truth RTTM file (optional).
+- **START_STAGE & END_STAGE**: Define which stages to run.
 
-mkdir alimeeting
-cd alimeeting
+For model path you can use a pre-trained TS-VAD model from here: 
 
-wget https://speech-lab-share-data.oss-cn-shanghai.aliyuncs.com/AliMeeting/openlr/Train_Ali_far.tar.gz
-tar xf Train_Ali_far.tar.gz
-rm Train_Ali_far.tar.gz
+-----
+## 4. Progression through the stages
 
-wget https://speech-lab-share-data.oss-cn-shanghai.aliyuncs.com/AliMeeting/openlr/Eval_Ali.tar.gz
-tar xf Eval_Ali.tar.gz
-rm Eval_Ali.tar.gz
-rm -rf Eval_Ali/Eval_Ali_near
-mv Eval_Ali/Eval_Ali_far/ .
-rm -rf Eval_Ali
+This section is just for insight. `script.sh` handles all the stages
+
+The `script.sh` is divided into three main stages, each responsible for a specific part of the evaluation pipeline.
+
+Organize your data directory to include the necessary subdirectories for audio files and RTTM annotations. The script will generate additional directories and files as it progresses through each stage.
+
+Initial setup:
+
+```
+data/
+├── wav/
+│   ├── file1.wav
+│   ├── file2.wav
+│   ├── file3.wav
+│   └── ...
 ```
 
-## 4. Prepare Target Audio and Embeddings
+After stage 1 the directory should look like:
 
-a. To get target audio and embeddings for Train_Ali_far you can use the below script:
+```
+data/
+├── wav/
+│   ├── file1.wav
+│   ├── file2.wav
+│   ├── file3.wav
+│   └── ...
+└── rttm/
+    ├── file1.rttm
+    ├── file2.rttm
+    ├── file3.rttm
+    └── ...
+```
+The files in rttm folder are generated using VBx clustering
 
-```bash
-# Set correct paths
-data_path=/workspace/TSVAD_pytorch/ts-vad/data/alimeeting
-ecapa_path=/workspace/TSVAD_pytorch/ts-vad/pretrained_models/ecapa-tdnn.model
+After stage 2 the directory should look like:
 
-cd wespeaker_alimeeting
-
-python modules/prepare_data.py \
-    --data_path ${data_path} \
-    --type Train \
-    --source ${ecapa_path}
-fi
+```
+data/
+├── wav/
+│   ├── file1.wav
+│   ├── file2.wav
+│   ├── file3.wav
+│   └── ...
+├── rttm/
+│   ├── file1.rttm
+│   ├── file2.rttm
+│   ├── file3.rttm
+│   └── ...
+├── target_audio/
+│   ├── file1
+│   │   ├── 1.wav
+│   │   ├── 2.wav
+│   │   ├── 3.wav
+│   │   ├── 4.wav
+│   │   └── all.wav
+│   ├── file2
+│   │   ├── 1.wav
+│   │   ├── 2.wav
+│   │   ├── 3.wav
+│   │   ├── 4.wav
+│   │   └── all.wav
+│   └── ...
+├── target_embedding/
+│   ├── file1
+│   │   ├── 1.pt
+│   │   ├── 2.pt
+│   │   ├── 3.pt
+│   │   └── 4.pt
+│   ├── file2
+│   │   ├── 1.pt
+│   │   ├── 2.pt
+│   │   ├── 3.pt
+│   │   └── 4.pt
+│   └── ...
+└── ts_infer.json
 ```
 
-b. For Eval_Ali_far we first need to get the clustering results and then generate target audio and embeddings.
+Stage 3 runs TS-VAD.
 
-This can be done by running the script file here: `wespeaker_alimeeting/run.sh` . Note: Set the `data_path` and `ecapa_path` before running the script
-
-The score of the wespeaker clustering should be: `DER / MS / FA / SC = 16.54 / 14.53 / 1.13 / 0.88` (Collor Size: 0.25)
-
-Your data directory should look like this:
-```
-ts-vad
-└── data
-    └── alimeeting
-        ├── Eval_Ali_far
-        │   ├── audio_dir
-        │   │   ├── ...
-        │   │   └── (many .wav files)
-        │   ├── rttm_dir
-        │   │   ├── ...
-        │   │   └── (many .rttm files)
-        │   ├── target_audio
-        │   │   ├── ...
-        │   │   └── (many directories)
-        │   ├── target_embedding
-        │   │   ├── ...
-        │   │   └── (many directories)
-        │   ├── textgrid_dir
-        │   │   ├── ...
-        │   │   └── (many .TextGrid files)
-        │   ├── all.rttm
-        │   └── ts_Eval.json
-        └── Train_Ali_far
-            ├── audio_dir
-            │   ├── R0003_M0046_MS002.wav
-            │   ├── R0003_M0047_MS006.wav
-            │   ├── ...
-            │   └── (many more .wav files)
-            ├── rttm_dir
-            │   ├── R0003_M0046.rttm
-            │   ├── R0003_M0047.rttm
-            │   ├── ...
-            │   └── (many more .rttm files)
-            ├── target_audio
-            │   ├── R0003_M0046_MS002
-            │   │   │   ├── 1.wav
-            │   │   │   ├── 2.wav
-            │   │   │   ├── 3.wav
-            │   │   │   └── 4.wav
-            │   │   │   └── all.wav
-            │   ├── R0003_M0047_MS006
-            │   │   │   ├── 1.wav
-            │   │   │   ├── 2.wav
-            │   │   │   ├── 3.wav
-            │   │   │   └── 4.wav
-            │   │   │   └── all.wav
-            │   ├── ...
-            │   └── (many more directories)
-            ├── target_embedding
-            │   ├── R0003_M0046_MS002
-            │   │   │   ├── 1.pt
-            │   │   │   ├── 2.pt
-            │   │   │   ├── 3.pt
-            │   │   │   └── 4.pt
-            │   ├── R0003_M0047_MS006
-            │   │   │   ├── 1.pt
-            │   │   │   ├── 2.pt
-            │   │   │   ├── 3.pt
-            │   │   │   └── 4.pt
-            │   ├── ...
-            │   └── (many more directories)
-            ├── textgrid_dir
-            │   ├── R0003_M0046.TextGrid
-            │   ├── R0003_M0047.TextGrid
-            │   ├── ...
-            │   └── (many more .TextGrid files)
-            └── ts_Train.json
-```
-## 5. Run TS-VAD
-
-To run TS-VAD model on alimeeting dataset
-
-Use the `run_train.sh` script in `ts-vad` to train TS-VAD
-The expected result is: `DER 4.58%, MS 2.94%, FA 1.13%, SC 0.51%`
-
-
-Use the `run_eval.sh` script in `ts-vad` to evaluate using an existing trained model
+If you provide a groundtruth rttm, DER will be calculated for the results from the VBx clustering and TS-VAD models.

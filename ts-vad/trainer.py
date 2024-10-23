@@ -116,21 +116,22 @@ class trainer(nn.Module):
 				rttm.write(line)
 		rttm.close()
 		print('\n')
-		print (args.rttm_save_path)
 
-		rttm_file_path = f"{args.eval_path}/all.rttm"
-		out = subprocess.check_output(['perl', 'tools/SCTK-2.4.12/src/md-eval/md-eval.pl', '-c 0.25', '-s %s'%(args.rttm_save_path), '-r ' + rttm_file_path])
-		out = out.decode('utf-8')
-		DER, MS, FA, SC = float(out.split('/')[0]), float(out.split('/')[1]), float(out.split('/')[2]), float(out.split('/')[3])
-		print("DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%\n"%(DER, MS, FA, SC))
-		args.score_file.write("Eval full 0.25: %d epoch, DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%, LOSS %f\n"%(args.epoch, DER, MS, FA, SC, nloss/num))
-		out = subprocess.check_output(['perl', 'tools/SCTK-2.4.12/src/md-eval/md-eval.pl', '-c 0.00', '-s %s'%(args.rttm_save_path), '-r ' + rttm_file_path])
-		out = out.decode('utf-8')
-		DER, MS, FA, SC = float(out.split('/')[0]), float(out.split('/')[1]), float(out.split('/')[2]), float(out.split('/')[3])
-		print("DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%\n"%(DER, MS, FA, SC))
-		args.score_file.write("Eval full 0.00: %d epoch, DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%, LOSS %f\n"%(args.epoch, DER, MS, FA, SC, nloss/num))
+		# Evaluation is done using the script.sh separately now (passing groundtruth is optional as some datasets do not have it)
+		# print (args.rttm_save_path)
+		# rttm_file_path = f"{args.eval_path}/all.rttm"
+		# out = subprocess.check_output(['perl', 'tools/SCTK-2.4.12/src/md-eval/md-eval.pl', '-c 0.25', '-s %s'%(args.rttm_save_path), '-r ' + rttm_file_path])
+		# out = out.decode('utf-8')
+		# DER, MS, FA, SC = float(out.split('/')[0]), float(out.split('/')[1]), float(out.split('/')[2]), float(out.split('/')[3])
+		# print("DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%\n"%(DER, MS, FA, SC))
+		# args.score_file.write("Eval full 0.25: %d epoch, DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%, LOSS %f\n"%(args.epoch, DER, MS, FA, SC, nloss/num))
+		# out = subprocess.check_output(['perl', 'tools/SCTK-2.4.12/src/md-eval/md-eval.pl', '-c 0.00', '-s %s'%(args.rttm_save_path), '-r ' + rttm_file_path])
+		# out = out.decode('utf-8')
+		# DER, MS, FA, SC = float(out.split('/')[0]), float(out.split('/')[1]), float(out.split('/')[2]), float(out.split('/')[3])
+		# print("DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%\n"%(DER, MS, FA, SC))
+		# args.score_file.write("Eval full 0.00: %d epoch, DER %2.2f%%, MS %2.2f%%, FA %2.2f%%, SC %2.2f%%, LOSS %f\n"%(args.epoch, DER, MS, FA, SC, nloss/num))
 
-		args.score_file.flush()
+		# args.score_file.flush()
 
 	def save_parameters(self, path):
 		model = OrderedDict(list(self.ts_vad.state_dict().items()) + list(self.ts_loss.state_dict().items()))
