@@ -80,6 +80,7 @@ fi
 if [ $START_STAGE -le 3 ] && [ $END_STAGE -ge 3 ]; then
     echo "Running TS-VAD evaluation (Stage 3)..."
     cd ts-vad
+    # ignore train_list and train_path (we only do evaluation). it will not be used when --eval is set
     python main.py \
         --train_list "${DATA_PATH}/ts_infer.json" \
         --eval_list "${DATA_PATH}/ts_infer.json" \

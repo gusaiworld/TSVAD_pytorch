@@ -1,4 +1,4 @@
-# TS-VAD on AliMeeting
+# End to End Diarization Pipeline
 
 This guide will walk you through setting up VBx and TSVAD_pytorch environment to run end-to-end diarization pipeline. This guide focuses on evaluation (not training).
 
