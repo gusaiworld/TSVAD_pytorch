@@ -96,6 +96,9 @@ if [ $START_STAGE -le 3 ] && [ $END_STAGE -ge 3 ]; then
         --eval \
         --init_model "$MODEL_PATH" \
         --max_speaker "$MAX_SPEAKER"
+    
+    echo "TS-VAD evaluation completed. The res_rttm file is located at: $OUTPUT_PATH/res_rttm"
+    
     if [ $? -ne 0 ]; then
         echo "Error: TS-VAD evaluation failed."
         exit 1
