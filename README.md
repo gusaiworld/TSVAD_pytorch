@@ -29,7 +29,7 @@ export PATH="/workspace/miniconda3/bin:$PATH"
 git clone https://github.com/adnan-azmat/TSVAD_pytorch.git
 cd TSVAD_pytorch
 
-conda env create --name wespeak2 --file=/workspace/wespeak2.yml
+conda env create --name wespeak2 --file=wespeak2.yml
 source activate wespeak2
 
 cd ts-vad
