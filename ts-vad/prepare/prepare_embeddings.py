@@ -99,6 +99,23 @@ def extract_embeddings(batch, model):
 		embeddings = model.forward(batch.cuda())
 	return embeddings
 
+def select_channel(signal, channel):
+    if signal.ndim == 1:
+        # Mono audio
+        pass
+    elif signal.ndim == 2:
+        num_channels = signal.shape[1]
+        if channel >= num_channels or channel < 0:
+            print(f'Channel {channel} does not exist. Defaulting to channel 0.')
+            signal = signal[:, 0]
+        else:
+            signal = signal[:, channel]
+    else:
+        # Unsupported number of dimensions
+        print(f'Unsupported number of dimensions in audio signal: {signal.ndim}')
+        signal = signal[:, 0]  # Default to channel 0
+    return signal
+
 def get_args():
 	parser = argparse.ArgumentParser(description='')
 	parser.add_argument('--data_path', help='the path for dataset')
@@ -108,6 +125,7 @@ def get_args():
 	parser.add_argument('--length_embedding', type=float, default=6, help='length of embeddings, seconds')
 	parser.add_argument('--step_embedding', type=float, default=1, help='step of embeddings, seconds')
 	parser.add_argument('--batch_size', type=int, default=96, help='step of embeddings, seconds')
+	parser.add_argument('--channel', type=int, default=0, help='Channel index to use if audio is multi-channel')
 
 	args = parser.parse_args()
 	args.path = args.data_path
@@ -121,11 +139,12 @@ def get_args():
 	args.out_text = os.path.join(args.path, 'ts_%s.json'%(args.type))
 	return args
 
-def save_target_audio(target_audio_path, segments, flac_path):
+def save_target_audio(target_audio_path, segments, flac_path, args):
 	# each segment is a Segment object with uttid, spkr, stime, etime, text, name
 
 	# read the original audio
 	audio, sr = soundfile.read(flac_path)
+	audio = select_channel(audio, args.channel)
 
 	# save the original audio
 	soundfile.write(os.path.join(target_audio_path, 'all.flac'), audio, sr)
@@ -195,6 +214,8 @@ def main():
 		wav_file = os.path.join(args.path_wav, uttid + '.wav')
 		
 		orig_audio, _ = soundfile.read(wav_file)
+		orig_audio = select_channel(orig_audio, args.channel)
+
 		length = len(orig_audio) 
 
 		# # Cut and save the clean speech part

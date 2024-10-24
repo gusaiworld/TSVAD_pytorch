@@ -120,7 +120,7 @@ def get_embedding(fea, model, label_name=None, input_name=None, backend='pytorch
                          {input_name: fea.astype(np.float32).transpose()
                          [np.newaxis, :, :]})[0].squeeze()
 
-def predict(args,wav_path,vad_path,config):
+def predict(args,wav_path,vad_path,config,channel=0):
     if len(wav_path)>=0 and os.path.exists(wav_path):
         full_name = os.path.basename(wav_path)
         filename = os.path.splitext(full_name)[0]
@@ -156,6 +156,23 @@ def predict(args,wav_path,vad_path,config):
             with open(config['out_ark_fn'], 'wb') as ark_file:
                 with Timer(f'Processing file {filename}'):
                     signal, samplerate = sf.read(wav_path)
+
+                    # Handle multi-channel audio
+                    if signal.ndim == 1:
+                        # Mono audio, nothing to do
+                        pass
+                    elif signal.ndim == 2:
+                        num_channels = signal.shape[1]
+                        if channel >= num_channels or channel < 0:
+                            print(f'Channel {channel} does not exist in {wav_path}. Defaulting to channel 0.')
+                            signal = signal[:, 0]
+                        else:
+                            signal = signal[:, channel]
+                    else:
+                        # Unsupported number of dimensions
+                        print(f'Skipping {wav_path}: Unsupported number of dimensions in audio signal: {signal.ndim}')
+                        return
+                    
                     labs = np.atleast_2d((np.loadtxt(vad_path,usecols=(0, 1)) * samplerate).astype(int))
                     if samplerate == 8000:
                         noverlap = 120
@@ -320,6 +337,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpus', type=str, default='', help='use gpus (passed to CUDA_VISIBLE_DEVICES)')
     parser.add_argument('--in-wav-dir', type=str, default='', help='path to directory containing wav files')
     parser.add_argument('--hf-token', type=str, required=True, help='Hugging Face token for authentication')
+    parser.add_argument('--channel', type=int, default=0, help='Channel index to use if audio is multi-channel')
     args = parser.parse_args()
     
     wav_dir = args.in_wav_dir + "/wav"
@@ -352,10 +370,21 @@ if __name__ == '__main__':
         except Exception as e:
             print(f'Failed to read {wav_file}: {e}')
             continue
-        
-        # Check if audio is mono
-        if signal.ndim != 1:
-            print(f'Skipping {wav_file}: Audio is not mono (channels: {signal.shape[1]})')
+
+        # Handle multi-channel audio
+        if signal.ndim == 1:
+            # Mono audio, nothing to do
+            pass
+        elif signal.ndim == 2:
+            num_channels = signal.shape[1]
+            if args.channel >= num_channels or args.channel < 0:
+                print(f'Channel {args.channel} does not exist in {wav_file}. Defaulting to channel 0.')
+                signal = signal[:, 0]
+            else:
+                signal = signal[:, args.channel]
+        else:
+            # Unsupported number of dimensions
+            print(f'Skipping {wav_file}: Unsupported number of dimensions in audio signal: {signal.ndim}')
             continue
 
 
@@ -394,7 +423,7 @@ if __name__ == '__main__':
         }
 
         # Perform predictions
-        predict(args, wav_path, vad_path, config)
+        predict(args, wav_path, vad_path, config, channel=args.channel)
         
         # Run VB-HMM resegmentation
         vbhmm_resegmentation(filename, config)

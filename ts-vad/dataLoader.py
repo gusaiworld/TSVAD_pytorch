@@ -9,8 +9,26 @@ def init_loader(args):
 	args.evalLoader = torch.utils.data.DataLoader(evalLoader, batch_size = args.batch_size, shuffle = False, num_workers = args.n_cpu, drop_last = False)
 	return args
 
+def select_channel(signal, channel):
+    if signal.ndim == 1:
+        # Mono audio
+        pass
+    elif signal.ndim == 2:
+        num_channels = signal.shape[1]
+        if channel >= num_channels or channel < 0:
+            print(f'Channel {channel} does not exist. Defaulting to channel 0.')
+            signal = signal[:, 0]
+        else:
+            signal = signal[:, channel]
+    else:
+        # Unsupported number of dimensions
+        print(f'Unsupported number of dimensions in audio signal: {signal.ndim}')
+        signal = signal[:, 0]
+    return signal
+
 class train_loader(object):
-	def __init__(self, train_list, train_path, rs_len, musan_path, rir_path, simtrain, max_speaker, **kwargs):
+	def __init__(self, train_list, train_path, rs_len, musan_path, rir_path, simtrain, max_speaker, channel=0, **kwargs):
+		self.channel = channel
 		self.noisetypes = ['noise','speech','music']
 		self.noisesnr = {'noise':[0,15],'speech':[13,20],'music':[5,15]}
 		self.numnoise = {'noise':[1,1], 'speech':[3,8], 'music':[1,1]}
@@ -93,7 +111,8 @@ class train_loader(object):
 	
 	def load_rs(self, file, speaker_ids, start, stop):
 		ref_speech, _ = soundfile.read(self.train_path + '/target_audio/' + file + '/all.wav', start = start * 640, stop = stop * 640 + 240) # Since 25 * 640 = 16000
-		
+		ref_speech = select_channel(ref_speech, self.channel)
+
 		frame_len = int(self.rs_len / 25 * 16000) + 240
 		ref_speech = numpy.expand_dims(numpy.array(ref_speech), axis = 0)
 		augtype = random.randint(0,2)
@@ -171,7 +190,8 @@ class train_loader(object):
 		return noise + audio
 	
 class eval_loader(object):
-	def __init__(self, eval_list, eval_path, rs_len, test_shift, max_speaker, **kwargs):
+	def __init__(self, eval_list, eval_path, rs_len, test_shift, max_speaker, channel=0, **kwargs):
+		self.channel = channel
 		self.eval_path = eval_path
 		self.rs_len = int(rs_len * 25)
 
@@ -232,6 +252,7 @@ class eval_loader(object):
 	
 	def load_rs(self, file, speaker_ids, start, stop):
 		ref_speech, _ = soundfile.read(self.eval_path + '/target_audio/' + file + '/all.wav', start = start * 640, stop = stop * 640 + 240)		
+		ref_speech = select_channel(ref_speech, self.channel)
 		ref_speech = torch.FloatTensor(numpy.array(ref_speech))
 		labels = []
 		for speaker_id in speaker_ids:
