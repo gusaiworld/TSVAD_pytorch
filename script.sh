@@ -17,8 +17,8 @@ GROUNDTRUTH_RTTM="/2023_ntu-recordings_16k/all.rttm"
 # =======================
 # Stages (Change these if needed)
 # =======================
-START_STAGE=1  # Set start stage (1, 2, 3)
-END_STAGE=3    # Set end stage (1, 2, 3)
+START_STAGE=1  # Set start stage (1, 2, 3, 4)
+END_STAGE=4    # Set end stage (1, 2, 3, 4)
 
 # Set up the output path with a timestamp
 TIME=$(date +"%Y%m%d_%H%M%S")
@@ -28,7 +28,9 @@ OUTPUT_PATH="${OUTPUT_PATH}_${TIME}"
 # Stage 1: VBx Prediction
 # =======================
 if [ $START_STAGE -le 1 ] && [ $END_STAGE -ge 1 ]; then
+    echo "=============================="
     echo "Running VBx prediction (Stage 1)..."
+    echo "=============================="
     cd VBx
     python predict.py --in-wav-dir "$DATA_PATH" --hf-token "$HF_TOKEN"
     if [ $? -ne 0 ]; then
@@ -51,6 +53,7 @@ if [ $START_STAGE -le 1 ] && [ $END_STAGE -ge 1 ]; then
         cd ../../../../../
 
         echo "VBx scoring completed."
+        echo "VBx computed RTTM file: ${DATA_PATH}/computed_rttm_vbx.rttm"
     fi
 
     echo "Stage 1 completed."
@@ -60,7 +63,9 @@ fi
 # Stage 2: Prepare Embeddings
 # =======================
 if [ $START_STAGE -le 2 ] && [ $END_STAGE -ge 2 ]; then
+    echo "=============================="
     echo "Preparing embeddings (Stage 2)..."
+    echo "=============================="
     cd ts-vad/prepare
     python prepare_embeddings.py \
         --data_path "$DATA_PATH" \
@@ -78,7 +83,9 @@ fi
 # Stage 3: TS-VAD Evaluation
 # =======================
 if [ $START_STAGE -le 3 ] && [ $END_STAGE -ge 3 ]; then
+    echo "=============================="
     echo "Running TS-VAD evaluation (Stage 3)..."
+    echo "=============================="
     cd ts-vad
     # ignore train_list and train_path (we only do evaluation). it will not be used when --eval is set
     python main.py \
@@ -116,7 +123,7 @@ if [ $START_STAGE -le 3 ] && [ $END_STAGE -ge 3 ]; then
         cd tools/SCTK-2.4.12/src/md-eval
         ./md-eval.pl -c 0.25 -s "$COMPUTED_RTTM" -r "$GROUNDTRUTH_RTTM"
         ./md-eval.pl -c 0.00 -s "$COMPUTED_RTTM" -r "$GROUNDTRUTH_RTTM"
-        cd ../../../../
+        cd ../../../../../
 
         echo "TS-VAD scoring completed."
     fi
@@ -124,4 +131,51 @@ if [ $START_STAGE -le 3 ] && [ $END_STAGE -ge 3 ]; then
     echo "Stage 3 completed."
 fi
 
+# =======================
+# Stage 4: Postprocessing VAD
+# =======================
+if [ $START_STAGE -le 4 ] && [ $END_STAGE -ge 4 ]; then
+    echo "=============================="
+    echo "Running Postprocessing VAD (Stage 4)..."
+    echo "=============================="
+
+    # Define paths for postprocessing
+    POSTPROCESS_RTTM="${OUTPUT_PATH}/res_rttm_postprocessing.rttm"
+
+    # Run postprocessing_VAD.py
+    python postprocessing_VAD.py \
+        --input_path "${DATA_PATH}/wav" \
+        --input_rttm "${OUTPUT_PATH}/res_rttm" \
+        --output_dir "$OUTPUT_PATH" \
+        --pyannote_segementation_token "$HF_TOKEN" \
+        --output_rttm_file "$POSTPROCESS_RTTM"
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Postprocessing VAD failed."
+        exit 1
+    fi
+
+    echo "Postprocessing VAD completed."
+    echo "Postprocessed RTTM file: $POSTPROCESS_RTTM"
+
+    # Perform scoring on the postprocessed RTTM
+    if [ ! -z "$GROUNDTRUTH_RTTM" ]; then
+        echo "Performing scoring on postprocessed RTTM..."
+
+        # set POSTPROCESS_RTTM to full path
+        POSTPROCESS_RTTM=$(pwd)/$POSTPROCESS_RTTM
+
+        cd ts-vad/tools/SCTK-2.4.12/src/md-eval
+        ./md-eval.pl -c 0.25 -s "$POSTPROCESS_RTTM" -r "$GROUNDTRUTH_RTTM"
+        ./md-eval.pl -c 0.00 -s "$POSTPROCESS_RTTM" -r "$GROUNDTRUTH_RTTM"
+        cd ../../../../../
+
+        echo "Scoring on postprocessed RTTM completed."
+    fi
+
+    echo "Stage 4 completed."
+fi
+
+echo "=============================="
 echo "Script finished successfully."
+echo "=============================="
